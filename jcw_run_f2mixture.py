@@ -25,23 +25,23 @@ importlib.reload(jh)
 np.random.seed(np.int(1.5829e5))  # 1.5829e5
 torch.manual_seed(np.int(1.5829e5+252))  # 252
 
-N = 100  # 40 # samples (overwrote below)
+N = 100  # 40 # samples
 E, D = 2, 2  # eventDimension (time counts), reduceFunctions
 Ebins = 32
 scaleSteps = 16
-Tmax = 50  # max number of target times to use in tensor
+Tmax = 20  # max number of target times to use in tensor
 targetSteps = 80  # 200
 batch = 10
-steps = 5  # initial run length (below is much longer)
+steps = 5
 minHazard = 1e-5
 maxGainOnHit = np.log(10)
 violationMultiplier = 100
 censorSize = 1  # default, overridden below if desired censorVector
-censorVector = Variable(torch.linspace(start=-1,end=-1,steps=1).double(),requires_grad=False)
-if 'censorVector' in globals():
-    censorSize = censorVector.size()[0]
-censorFixed = False
-npermutations = 4
+# censorVector = Variable(torch.linspace(start=-1,end=-0,steps=3).double(),requires_grad=False)
+# if 'censorVector' in globals():
+#     censorSize = censorVector.size()[0]
+# censorFixed = False
+# npermutations = 4
 
 imageDir = 'images/'  # for output
 timeString = str(dt.datetime.now())
@@ -61,6 +61,13 @@ for i in range(len(hd)):
         hd[i] = Variable(torch.from_numpy(np.array(hd[i])).type(torch.DoubleTensor), requires_grad=False)
 
 ### Simulation data
+# trainDir = 'data/targetKetoacidosis/train/'
+# testDir = 'data/targetKetoacidosis/test/'
+# trainDir = 'data/targetHgbA1C/train/'
+# testDir = 'data/targetHgbA1C/test/'
+# # target, events, lbub, ptsTimesValuesTensor, waveArrayTensor = f2m.loadPricklyData(trainDir, (N, Tmax, E))
+# # # _, _, testLbub, testPtsTimesValuesTensor, testWaveArrayTensor = f2m.loadPricklyData(testDir, (N, Tmax, E))
+
 details = {'dataDir': '~/workspace/lt/py/data/targetHgbA1C/',
            'prefix': 'a1ctarget4',
            'suffix':'.csv',
@@ -80,7 +87,7 @@ details = {'dataDir': '~/workspace/lt/py/data/targetHgbA1C/',
 #            'target': 'ACS',
 #            'holdout': ['Holdout']}
 
-# # (TEST assert no causal leakage and check) #
+# # (TEST not cheating) #
 # target, events, lbub, trainParams, ptsTimesValuesTensor, waveArrayTensor = \
 #     jrd.load_dat4_dataset(dataSetDict=details, tvShape=np.array([None, Tmax, None]), eventBins=64)[0]
 # testStuff = jrd.load_dat4_not_cheating_test('data/targetHgbA1C/a1ctarget4test.csv', 'HgbA1C', Tmax=Tmax, tvShape=[None, Tmax, E])
@@ -95,20 +102,6 @@ _, _, testLbub, testParams, testPtsTimesValuesTensor, _ = datObjects[1]
 
 N = trainParams[0]
 Ntest = testParams[0]
-
-### Real data
-# details = {'dataDir': '',
-#            'prefix': '',
-#            'suffix':'.csv',
-#            'folds': np.arange(2)+1,
-#            'target': '',
-#            'holdout': [3]}
-# datObjects = jrd.load_dat4_dataset(dataSetDict=details, iterString='folds', tvShape=np.array([None, Tmax, None]),lbubs=np.array([2010,np.nan]), eventBins=Ebins)
-# target, events, lbub, trainParams, ptsTimesValuesTensor, waveArrayTensor = datObjects[0]
-# _, _, testLbub, testParams, testPtsTimesValuesTensor, _ = datObjects[1]
-# datObjects[1] = None
-# N = trainParams[0]
-# Ntest = testParams[0]
 
 pL1Wvt = Variable(torch.DoubleTensor([1./N]).type(tensorType),requires_grad=False)  # parameter for L1 reg. 1-d images
 pL1WvtImage = Variable(torch.DoubleTensor([1./N]).type(tensorType),requires_grad=False)  # parameter for L1 reg. 2-d images
@@ -139,6 +132,12 @@ else:
     hadamardCensor = None
 
 testWatx, testCountsInWatxTensor, testDistsInWatxTensor = f2m.derivedTensors(testLbub, target, testPtsTimesValuesTensor, targetSteps)
+# tW = len(testWatx)-1
+# for i in range(0, len(testWatx)-1):
+#     testWatx[i] = testWatx[tW]
+#     testCountsInWatxTensor[i] = testCountsInWatxTensor[tW]
+#     testDistsInWatxTensor[i] = testDistsInWatxTensor[tW]
+# testWatx[9] = testWatx[8]; testCountsInWatxTensor[9] = testCountsInWatxTensor[8]; testDistsInWatxTensor[9] = testDistsInWatxTensor[8]  # Hack 9 to have 8 counts
 testSsmaps = f2m.getSSMaps(testPtsTimesValuesTensor, waveArrayTensor, testWatx)
 
 # CUDA declarations
@@ -171,7 +170,7 @@ if tensorType == torch.cuda.DoubleTensor:  # make cuda (if desired) out of exist
         stepsTimes[i] = stepsTimes[i].cuda()
         # redeclare
         w2ds[i] = Variable(w2ds[i].data.cuda(), requires_grad=True)
-
+        
 
 class ParallelLinear(nn.Module):
     '''
@@ -186,7 +185,7 @@ class ParallelLinear(nn.Module):
         self.fixedLayers = fixedLayers
         self.overridden = False
         self.dim = dim
-        self.weight = torch.cat([ll.weight for ll in self.ll],0)  # not clear if this allows setting of self.ll.weights ...
+        self.weight = torch.cat([ll.weight for ll in self.ll],0)
         self.bias = torch.cat([ll.bias for ll in self.ll])
         self.collapseDims = collapseDims
 
@@ -289,11 +288,11 @@ class NormPermutePool(nn.Module):
 
 print('Running steps')
 baseRate = (~np.isnan(ptsTimesValuesTensor[target].data.numpy())).sum() / (lbub[:,1]-lbub[:,0]).sum()
-# parallelLinearLayer = ParallelLinear(E*D*len(events), 1, censorSize, dim=1).double()  # Use for linear layer only
-# npermutations = 1
-parallelLinearLayer = ParallelLinear(E*D*len(events), 1, censorSize, dim=1, collapseDims=False).double()  # Use for ppl
-npp = [NormPermutePool(E*D*len(events), E*D, 1, permutations=npermutations) for i in range(censorSize)]
-parallelLinearLayer.overrideLl(npp)
+parallelLinearLayer = ParallelLinear(E*D*len(events), 1, censorSize, dim=1).double()  # Use for linear layer only
+npermutations = 1
+# parallelLinearLayer = ParallelLinear(E*D*len(events), 1, censorSize, dim=1, collapseDims=False).double()
+# npp = [NormPermutePool(E*D*len(events), E*D, 1, permutations=npermutations) for i in range(censorSize)]
+# parallelLinearLayer.overrideLl(npp)
 
 parallelLinearLayer.weight.data.uniform_(baseRate/(E*D*len(events)))
 parallelLinearLayer.bias.data.uniform_(baseRate)
@@ -387,21 +386,16 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
         imageInterpolationLayer = np.empty(len(events), dtype=Variable)
         reduceLayer = np.empty(len(events), dtype=Variable)
 
-        # interpolated[bi] = np.empty(len(events), dtype=np.ndarray)
-        # imageInterpolated[bi] = np.empty(len(events), dtype=np.ndarray)
         interpolated[bi] = np.empty(len(events), dtype=np.ndarray)
         imageInterpolated[bi] = np.empty(len(events), dtype=np.ndarray)
 
         # Get hazard functions per event
         for eventi, event in enumerate(events):
-            # np.array([1,2,3,4]).dot(hd[1].transpose()).dot(hd[1])
             # TODO waiting, sparseTensor is only implemented for matrices (2-D), and not even
             # jcw_helper.dot(ssmaps[event],applied)  #NotImplementedError, expand not available
             # appliedOnTimes = ssmaps[event].matmul(applied)  # NotImplementedError, bmm not available, have to do it manually
             interpolated[bi][eventi] = blankTmax.copy()  # COPY indices (shallow) np.empty(Tmax, dtype=Variable)
-            imageInterpolated[bi][eventi] = blankTmax.copy()  # COPY (shallow) so that 
-            # interpolated[bi] = np.empty(Tmax, dtype=Variable)
-            
+            imageInterpolated[bi][eventi] = blankTmax.copy()  # COPY (shallow)            
             for ti in np.arange(Tmax):
                 skey = None
                 if event in ssmaps:
@@ -415,8 +409,6 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                         recon = reconCensored.unsqueeze(0)  # 1 x C x len(w)
 
                     # skey len(w) x ts; recon.matmul(skey) is C x ts  # note: matmul() broadcasts, mm() does not
-                    # interpolated[bi][eventi][j] = skey.t().matmul(  # TODO make it able to use hadamard and use reconCensored
-                    #     recon.t()).t()
                     interpolated[bi][eventi][ti] = recon.matmul(skey)
                     if valueBinIndices[ni][eventi] is None or len(valueBinIndices[ni][eventi].shape) == 0:
                         imageInterpolated[bi][eventi][ti] = blank  # fix blank tensor size
@@ -440,24 +432,13 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                         # just need to flip times
                         #   (values are ordered low (top of matrix) to high (bottom) appropriately)
                         # skey is flipped actually;
-                    # interpolated[bi][j] = skey.t().matmul(
-                    #     reconstruction[eventi].t()).t()
-                    # interpolated[bi,eventi,j,:] = skey.t().matmul(
-                    #     reconstruction[eventi].t()).t()
                 else:
                     break
-                # else:
-                #     # interpolated[bi,eventi,j,:] = blank
-                #     interpolated[bi][eventi][j] = blank
-                #     imageInterpolated[bi][eventi][j] = blank
-                #     # interpolated[bi][j] = blank
-                #     # Maybe you need to make an autograd layer for this slicing:
-                #     # Given all the slices, pass the gradients (identity) to each upstream slice
-                #     # Actually torch.cat should solve this
+                
             # interpolationLayer[eventi] = torch.cat(interpolated[bi],0)
             # pdb.set_trace()
             interpolationLayer[eventi] = torch.cat(
-                interpolated[bi][eventi], 0)  # Tmax x (C) x len(w)
+                tuple(interpolated[bi][eventi]), 0)  # Tmax x (C) x len(w)
             # interpolationLayer[eventi] = torch.cat(interpolated[bi][eventi],0)
             sumLayer = interpolationLayer[eventi].sum(0,keepdim=True)
             maxLayer = interpolationLayer[eventi].max(0,keepdim=True)[0]  # CHECK [0]?
@@ -465,7 +446,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
             # sumLayer = interpolated[bi,eventi,:,:].sum(0,keepdim=True)
             # maxLayer = interpolated[bi,eventi,:,:].max(0,keepdim=True)[0]
             imageInterpolationLayer[eventi] = torch.cat(
-                imageInterpolated[bi][eventi], 0)  # Tmax x (C) x len(w)
+                tuple(imageInterpolated[bi][eventi]), 0)  # Tmax x (C) x len(w)
             imageSumLayer = imageInterpolationLayer[eventi].sum(0,keepdim=True)  # 1 x (C) x len(w)
             imageMaxLayer = imageInterpolationLayer[eventi].sum(0,keepdim=True)  # 1 x (C) x len(w)
 
@@ -475,7 +456,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                 reduceLayer[eventi] = sumLayer.unsqueeze(0)
                 
         # compute loss on pt
-        eventsLayer = torch.cat(reduceLayer,0)  # E(vents) x 4 x (C) x len(w)
+        eventsLayer = torch.cat(tuple(reduceLayer),0)  # E(vents) x 4 x (C) x len(w)
         eventsLayerB[bi] = eventsLayer  # for debugging
         
         # Note that Py3.0 as of 1/1/18 list comprehensions use global variables over method variables
@@ -487,20 +468,16 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
         clcLayerTensor = parallelLinearLayer(eventsLayer.permute(3,2,1,0)).transpose(0,1)  # (C) x len(w) x 1
         crlLayerTensor = reluLayer(clcLayerTensor - minHazard) + minHazard  # (C) x len(w) x 1
         
-        # violationArray[bi] = -1 * torch.clamp(lcLayer,max=0).sum() * \
-        #     violationMultiplier
-        # pdb.set_trace()
         violationArray[bi,:] = torch.clamp(clcLayerTensor,max=0).abs().squeeze(2).matmul(distsInWatxTensor[ni]) * \
             violationMultiplier 
-        # violationArray[bi,:] = -1 * torch.clamp(clcLayerTensor,max=0).sum(1).sum(1) * \
-        #     violationMultiplier
-
+        
         lcLayerArray[bi,:,:] = clcLayerTensor.squeeze(2)  # (C) x len(w)
         rlLayerArray[bi,:,:] = crlLayerTensor.squeeze(2)  # (C) x len(w)
+
         # pdb.set_trace()
         # Note: to avoid backward(.) errors, DO NOT USE indexed subset on R.H.S., e.g. ... = rlLayerArray[bi,:,:]
-        hitsArray[bi,:] = torch.clamp(torch.log(crlLayerTensor),max=maxGainOnHit).squeeze(2).matmul(countsInWatxTensor[ni]).squeeze()  # (C)
-        areaArray[bi,:] = crlLayerTensor.squeeze(2).matmul(distsInWatxTensor[ni]).squeeze()  # (C)
+        hitsArray[bi,:] = torch.clamp(torch.log(crlLayerTensor),max=maxGainOnHit).squeeze(2).matmul(countsInWatxTensor[ni])  # (C) # TODO Possibly need squeeze back when C!=1
+        areaArray[bi,:] = crlLayerTensor.squeeze(2).matmul(distsInWatxTensor[ni])  # (C)  # TODO Possibly need squeeze back when C!=1
         # areaArray[bi,:] = rlLayer.t().matmul(distsInWatxTensor[i]).squeeze()  # (C)
         # ll = torch.cat(hitsArray) - torch.cat(areaArray)
         # print ll
@@ -520,7 +497,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
         for i, wi in enumerate(w2ds):
             if wi is not None:
                 wvtImagePenaltyArray[i] = wi*coefficientPenalties['2d'][i]
-        l1Wvt = torch.cat(wvtPenaltyArray)
+        l1Wvt = torch.cat(tuple(wvtPenaltyArray))
         l1WvtImage = torch.cat([ wipa.view(-1) for wipa in wvtImagePenaltyArray],0) 
     else:
         l1Wvt = torch.cat(parsWvt)
@@ -570,7 +547,8 @@ _, _, _, testValueBinIndices, _ = \
 testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = runStep(
     t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor, waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor, w2ds, testValueBinIndices, coefficientPenalties=coefficientPenalties, hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, verbose=True)  # use waveArrayTensor no testWaveArrayTensor because waveArrayTensor holds train set modified wavelet reconstruction parameters
 
-
+# targetCleaned = 'hemoglobina1c'
+# targetCleaned = 'polyneuropathy'
 targetCleaned = str.split(target,'|')[len(str.split(target,'|'))-1]  # last piece after '|'
 
 baseRate = (~np.isnan(ttimesArray.data.numpy())).sum() / (lbub[:,1]-lbub[:,0]).sum()
@@ -583,16 +561,21 @@ print('Average NLL guessing (test): ' + \
       str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
 
 
-
 # Plot wavelet reconstruction
 if not hasattr(parallelLinearLayer, 'overridden') or parallelLinearLayer.overridden == False:
     print([events[[ i % (E*D) for i in np.where(np.abs([p for p in parallelLinearLayer.parameters()][0].data.cpu().numpy()) > 0.1)[1]]]])
     # TODO fix support identification: meaningless for permuted layer
-    if E*D == 4:
-        print(pd.DataFrame([p for p in parallelLinearLayer.parameters()][0].view(-1,E*D).data.numpy(), columns=np.repeat(events,npermutations), index=['add','max','addI','maxI']))
-    else:
-        print(pd.DataFrame([p for p in parallelLinearLayer.parameters()][0].view(-1,E*D).data.numpy(), columns=np.repeat(events,npermutations), index=['add']))
+    # if E*D == 4:  # TODO fix
+    #     print(pd.DataFrame([p for p in parallelLinearLayer.parameters()][0].view(-1,E*D).data.numpy(), columns=np.repeat(events,npermutations), index=['add','max','addI','maxI']))
+    # else:
+    #     print(pd.DataFrame([p for p in parallelLinearLayer.parameters()][0].view(-1,E*D).data.numpy(), columns=np.repeat(events,npermutations), index=['add']))
 
+# showwat = waveArrayTensor['Ketoacidosis']
+# showwat = waveArrayTensor[target]
+# showwat = waveArrayTensor['Retinopathy']
+# showwat = waveArrayTensor['Dizziness']
+# # showwat = waveArrayTensor['SerumLDL']
+# showwat = waveArrayTensor['POC']
 if 'Troponin' in waveArrayTensor:
     showwat = waveArrayTensor['Troponin']
     # showwat = waveArrayTensor['ACS']
@@ -622,7 +605,6 @@ if w2ds[ei] is not None:
     # plt.show()
     plt.savefig(imageDir + targetCleaned + timeString + 'wvtImage.svg', format='svg'); plt.clf()
  
-
 timeString = str(dt.datetime.now())
 batch = 30
 batchis = np.random.choice(np.minimum(N,Ntest), batch, False)
@@ -661,7 +643,7 @@ testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, test
             indexBatch=batchis,
             coefficientPenalties=coefficientPenalties,
             hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, 
-            # withpdb=True,  
+            # withpdb=True,  # TODO the mappin of example 2 at absolute time 5 is off. wavelet value but just for one example out of 10??
             verbose=True)
 Cs = [0]
 if 'censorVector' in globals():
@@ -705,8 +687,8 @@ for c in Cs:
 if not parallelLinearLayer.overridden:
     coefProfiles = np.empty(len(parallelLinearLayer.ll), Variable)
     for li, l in enumerate(parallelLinearLayer.ll):
-        coefProfiles[li] = torch.cat([p for p in l.parameters()][0]).unsqueeze(0)
-    coefProfiles = torch.cat(coefProfiles,0)
+        coefProfiles[li] = [p for p in l.parameters()][0]
+    coefProfiles = torch.cat(tuple(coefProfiles),0)
     coefPlots = np.empty(coefProfiles.size()[1], object)
     plt.figure(figsize=(6,4))
     ax = plt.subplot(111)
@@ -717,7 +699,7 @@ if not parallelLinearLayer.overridden:
     cvline = [1]
     if 'censorVector' in globals() and censorVector is not None:
         cvline = censorVector.data.numpy()
-        for li in np.arange(coefProfiles.size()[1]):
+        for li in np.arange(coefProfiles.size()[0]):
             coefPlots[li], = plt.plot(censorVector.data.numpy(),
                                       coefProfiles[:,li].data.numpy(),
                                       color=plt.cm.viridis(mycolors[li]),
@@ -829,7 +811,7 @@ testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, test
             hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd,
             verbose=True)
 
-### Bootstrap the tune (and held out set when decide to access) set to get confidence intervals
+# Bootstrap the tune (and held out set when decide to access) set to get confidence intervals
 # this is a fixed model bootstrap, i.e. once learned \hat{f} is fixed, you want to know confidence in log likelihood on holdout test
 # this does not assess performance of the learning procedure; it only characterizes the performance of the resulting model \hat{f}
 bsn = 1000
@@ -848,7 +830,7 @@ print('Average NLL guessing (holdout): ' + \
       str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
 
 
-### See coefficents as a function of censorStep
+# See coefficents as a function of censorStep
 _, _, _, testValueBinIndices, _ = \
     f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
 testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = runStep(
@@ -857,7 +839,7 @@ print('Tune performance as a function of censor step')
 print((testHitsArray - testAreaArray).sum(0).neg_()/Ntest)
 
 
-### random helpers
+# random helpers
 torch.cat([testPtsTimesValuesTensor[e][3,:,0].unsqueeze(1) for e in testPtsTimesValuesTensor.keys()],1)
 testLcLayerArray[np.argsort(batchis),:].squeeze(1)
 
