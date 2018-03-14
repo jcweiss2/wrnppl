@@ -875,24 +875,7 @@ for bi, ni in enumerate(batchis):
         plt.scatter(ttimesArray.data.cpu().numpy()[ni,activeis],
                     np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds], color=plt.cm.viridis(mycolors[bi]))
 
-        x_actual = ttimesArray.data.cpu().numpy()[ni,activeis]
-        y_actual = np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds]
-        y_actual_cum = np.cumsum(y_actual)
 
-    #Plotting the cumulative hazard rate w.r.t. lambda
-    #plt.plot(x_predicted, np.cumsum(y_predicted))
-    #plt.xlabel('Lambda')
-    #plt.ylabel('Cumulative hazard rate')
-    #Plotting the total hazard rate of all the predicted points at the final time
-    #print('Plotting the total hazard rate of all the predicted points at the final time')
-    #plt.plot(x_predicted[-1], sum(y_actual), marker='o', markersize=5, color="red")
-
-    (df,TP,TN,FP,FN) = getConfusionMatrix(x_predicted, y_predicted, x_actual, y_actual,0.1)
-    results.append((df,TP,TN,FP,FN))
-
-    #Plotting the graphs
-    #print('Plotting the TPR/FPR and FNR/... graphs')
-    #createGraphs(df)
 
 plt.xlabel('Time')
 plt.ylabel('Hazard')
