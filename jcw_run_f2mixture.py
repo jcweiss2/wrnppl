@@ -22,6 +22,68 @@ importlib.reload(jh)
 ############ RUN ############
 #############################
 
+# if __name__ == '__main__':
+
+#     # Setup `argparse` module to assist in parsing the command line arguments.
+
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("data_directory", type=str)
+#     parser.add_argument("source_filename", type=str)
+#     parser.add_argument("--N", type=int, default=100, help="Sample Size")
+#     parser.add_argument("--E", type=int, default=2, help="Event Dimension (time counts)")
+#     parser.add_argument("--D", type=int, default=2, help="# of reduce functions")
+#     parser.add_argument("--Ebins", type=int, default=32, help="")
+#     parser.add_argument("--scaleSteps", type=int, default=16, help="")
+#     parser.add_argument("--Tmax", type=int, default=50, help="Max. # of target times to use in tensor")
+#     parser.add_argument("--targetSteps", type=int, default=80, help="Target Steps")
+#     parser.add_argument("--batch", type=int, default=10, help="Batch")
+#     parser.add_argument("--steps", type=int, default=5, help="Initial Run Length (below is much longer)")
+#     parser.add_argument("--minHazard", type=int, default=5, help="")
+#     parser.add_argument("--maxGainOnHit", type=float, default=np.log(10), help="")
+#     parser.add_argument("--violationMultiplier", type=int, default=100, help="")
+#     parser.add_argument("--censorSize", type=int, default=1, help="overriden below if desired censorVector")
+#     parser.add_argument("--npermutations", type=int, default=4, help="# of permutations")
+#     parser.add_argument("--imageDir", type=str, default="./images/", help="Output Directory")
+#     parser.add_argument("--isCensorSizeDefault", type=bool, default=True, help="Output Directory")
+#     parser.add_argument("--pL1Value", type=float, default=1e-7, help="L1 regularization parameter")
+#     parser.add_argument("--pL2Value", type=float, default=0, help="L2 regularization parameter")
+#     parser.add_argument("--doingHawkes", type=bool, default=False, help="True if doing Hawkes")
+#     parser.add_argument("--optim", type=str, default="RMSprop", help="which optimizer to use -Adam/RMSprop?")
+#     parser.add_argument("--batchisUserInput", type=int, default=-999, help="type a list of user id's for the user you need the graph")
+
+#     args = parser.parse_args()
+
+
+
+#     # Allocate the command line parameters to global variables of this script.
+
+#     data_directory = args.data_directory
+#     source_filename_prefix = ''.join(args.source_filename.split(".")[:-1])
+#     source_filename_suffix = args.source_filename.split(".")[-1]
+
+#     N = args.N
+#     E = args.E
+#     D = args.D
+#     Ebins = args.Ebins
+#     scaleSteps = args.scaleSteps
+#     Tmax = args.Tmax
+#     targetSteps = args.targetSteps
+#     steps = args.steps
+#     batch = args.batch
+#     minHazard = args.minHazard
+#     maxGainOnHit = args.maxGainOnHit
+#     violationMultiplier = args.violationMultiplier
+#     censorSize = args.censorSize
+#     npermutations = args.npermutations
+#     imageDir = args.imageDir
+#     pL1Value=args.pL1Value
+#     pL2Value=args.pL2Value
+#     doingHawkes=args.doingHawkes
+#     optim=args.optim
+#     isCensorSizeDefault=args.isCensorSizeDefault
+#     batchisUserInput=args.batchisUserInput
+
+
 np.random.seed(np.int(1.5829e5))  # 1.5829e5
 torch.manual_seed(np.int(1.5829e5+252))  # 252
 
@@ -37,11 +99,22 @@ minHazard = 1e-5
 maxGainOnHit = np.log(10)
 violationMultiplier = 100
 censorSize = 1  # default, overridden below if desired censorVector
-# censorVector = Variable(torch.linspace(start=-1,end=-0,steps=3).double(),requires_grad=False)
-# if 'censorVector' in globals():
-#     censorSize = censorVector.size()[0]
-# censorFixed = False
-# npermutations = 4
+pL1Value=1e-7
+pL2Value=0
+doingHawkes=False
+optim="RMSprop"
+isCensorSizeDefault=True
+batchisUserInput=-999
+
+if(isCensorSizeDefault):
+    censorSize=censorSize
+else:
+    censorVector = Variable(torch.linspace(start=-1,end=-0,steps=3).double(),requires_grad=False)
+    if 'censorVector' in globals():
+        censorSize = censorVector.size()[0]
+    censorFixed = False
+
+npermutations = 4
 
 imageDir = 'images/'  # for output
 timeString = str(dt.datetime.now())
@@ -49,8 +122,8 @@ timeString = str(dt.datetime.now())
 tensorType = torch.DoubleTensor
 # tensorType = torch.cuda.DoubleTensor
 
-pL1 = Variable(torch.DoubleTensor([1e-7]).type(tensorType),requires_grad=False)  # parameter for L1 reg.
-pL2 = Variable(torch.DoubleTensor([0]).type(tensorType),requires_grad=False)  # parameter for L2 reg.
+pL1 = Variable(torch.DoubleTensor([pL1Value]).type(tensorType),requires_grad=False)  # parameter for L1 reg.
+pL2 = Variable(torch.DoubleTensor([pL2Value]).type(tensorType),requires_grad=False)  # parameter for L2 reg.
 # pL2 = Variable(torch.DoubleTensor([1e-4]).type(tensorType),requires_grad=False)  # parameter for L2 reg.
 
 hd = jcw_pywavelets.create_haar_dictionary(10)
@@ -109,10 +182,10 @@ pL1WvtImage = Variable(torch.DoubleTensor([1./N]).type(tensorType),requires_grad
 # pL1WvtImage = Variable(torch.DoubleTensor([0.1/N]).type(tensorType),requires_grad=False)  # parameter for L1 reg. 2-d images
 
 hawkesrd, hawkespd = None, None  # leave uncommented despite not using
-# print('Doing hawkes')
-# hawkesrd, hawkespd = jh.makeHawkesReconstructionDict(waveArrayTensor)
-# E, D =  1, 1
-
+if(doingHawkes):
+    print('Doing hawkes')
+    hawkesrd, hawkespd = jh.makeHawkesReconstructionDict(waveArrayTensor)
+    E, D =  1, 1
 
 
 ### build the derivedTensors
@@ -310,8 +383,13 @@ if hawkespd is not None:
     parsHawkes = [p for p in hawkespd.values()]
 linearLayerPars = [p for p in loff.parameters()]
 pars = parsWvt + parsWvtImage + linearLayerPars + parsHawkes
-# optimizer = torch.optim.Adam(pars, weight_decay=1e-3)
-optimizer = torch.optim.RMSprop(pars, weight_decay=1e-2)
+
+#argparse argument
+if(optim=="Adam"):
+    optimizer = torch.optim.Adam(pars, weight_decay=1e-3)
+else:
+    optimizer = torch.optim.RMSprop(pars, weight_decay=1e-2)
+
 # Now use waveArrayTensor and ptsTimesValuesTensor for learning
     
     
@@ -731,6 +809,57 @@ loss, hitsArray, areaArray, lcLayerArray, rlLayerArray, ttimesArray = runStep(
     verbose=True)
 mycolors = np.linspace(0.8,0, batch)
 plt.figure(figsize=(6,4))
+
+results = [] #Contains the final (TP,TN,FP,FN) result tuples
+
+
+
+#Sample custom input
+#batchisUserInput = [3, 4, 5, 10, 16]
+#batchisUserInput = -999
+if batchisUserInput != -999:
+    batchis = batchisUserInput #Get overwritten with the custom input
+    print("Overwritting batchis with custom user input:")
+
+if(batchisUserInput!=-999):
+    for bi, ni in enumerate(batchis):
+        plt.figure(bi)
+        
+        x_predicted = watx[ni][:-1]
+        y_predicted = rlLayerArray.data.cpu().numpy()[bi,0,:].squeeze()
+        y_predicted_cum = np.cumsum(y_predicted)
+        
+        
+        if sum(~np.isnan(ttimesArray.data.cpu().numpy()[ni,:])) > 0:
+            # print np.nanmin(rlLayerArray[i,:].data.cpu().numpy())
+            activeis = np.where(~np.isnan(ttimesArray.data.cpu().numpy()[ni,:]))[0]
+            inds = np.digitize(ttimesArray.data.cpu().numpy()[ni,:][activeis],
+                               watx[ni][:-1]) - 1
+                
+                               x_actual = ttimesArray.data.cpu().numpy()[ni,activeis]
+                               y_actual = np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds]
+                               y_actual_cum = np.cumsum(y_actual)
+        
+        #Plotting the cumulative hazard rate w.r.t. lambda
+        
+        plt.plot(x_predicted, np.cumsum(y_predicted))
+        plt.xlabel('Lambda')
+        plt.ylabel('Cumulative hazard rate')
+        #Plotting the total hazard rate of all the predicted points at the final time
+        #print('Plotting the total hazard rate of all the predicted points at the final time')
+        
+        plt.plot(x_predicted[-1], sum(y_actual), marker='o', markersize=5, color="red")
+        
+        (df,TP,TN,FP,FN) = getConfusionMatrix(x_predicted, y_predicted, x_actual, y_actual,0.1)
+        results.append((df,TP,TN,FP,FN))
+        
+        #Plotting the graphs
+        #print('Plotting the TPR/FPR and FNR/... graphs')
+        plt.figure(bi+len(batchisUserInput))
+    createGraphs(df)
+
+plt.show()
+
 for bi, ni in enumerate(batchis):
     # plt.plot(np.linspace(0,20,num=targetSteps),testRlLayerArray.data.cpu().numpy()[i,:].squeeze())
     plt.step(watx[ni][:-1], rlLayerArray.data.cpu().numpy()[bi,0,:].squeeze(),color=plt.cm.viridis(mycolors[bi]), where='post')
