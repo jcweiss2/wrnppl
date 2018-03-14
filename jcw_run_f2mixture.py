@@ -527,6 +527,120 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
     return loss, hitsArray, areaArray, lcLayerArray, rlLayerArray, ptsTimesValuesTensor[target][:, :, 0]
 
 
+#########Start of custom function###########
+def getConfusionMatrix(x_predicted, y_predicted, x_actual, y_actual, threshold):
+    
+    #Creating the output data frame
+    df = pd.DataFrame(x_predicted)
+    df.columns = ['bin']
+    df['value'] = 0
+    df['threshold'] = threshold
+    df['predictedHazard'] = y_predicted
+    df['TP'] = 0
+    df['TN'] = 0
+    df['FP'] = 0
+    df['FN'] = 0
+    
+    for i,val in enumerate(x_actual):
+        for index,v in enumerate(x_predicted):
+            if v > val:
+                break
+        #We get the upper index of the bin i.e. [lowerIndex, upperIndex]
+        #upperIndex[i] = index #Stores the index values
+
+        df.iloc[index,1] += 1
+
+    TP = 0
+    TN = 0
+    FP = 0
+    FN = 0
+    
+    #Column names for df
+    #0: bin
+    #1: value
+    #2: threshold
+    #3: predictedHazard
+    #4: TP
+    #5: TN
+    #6: FP
+    #7: FN
+    for index,row in df.iterrows():
+        if row['predictedHazard'] >= threshold and row['value'] > 0:
+            TP += 1
+            df.iloc[index,4] = 1
+        elif row['predictedHazard'] >= threshold and row['value'] == 0:
+            FP += 1
+            df.iloc[index,6] = 1
+        elif row['predictedHazard'] < threshold and row['value'] == 0:
+            TN += 1
+            df.iloc[index,5] = 1
+        else:
+            FN += 1
+            df.iloc[index,7] = 1
+    
+    
+    #Making the cumulative columns
+    df['cumulativeTP'] = 0
+    df['cumulativeTN'] = 0
+    df['cumulativeFP'] = 0
+    df['cumulativeFN'] = 0
+    df['cumulativeTP'] = np.cumsum(df['TP'])
+    df['cumulativeTN'] = np.cumsum(df['TN'])
+    df['cumulativeFP'] = np.cumsum(df['FP'])
+    df['cumulativeFN'] = np.cumsum(df['FN'])
+    
+    #Caclulating TPR/FPR ratio
+    df['TPR'] = df['cumulativeTP']/(df['cumulativeTP']+df['cumulativeFN']) #sensitivity
+    df['TNR'] = df['cumulativeTN']/(df['cumulativeTN']+df['cumulativeFP']) #specificity
+    df['FPR'] = 1-df['TNR']
+    df['FNR'] = 1-df['TPR']
+    
+    return (df,TP,TN,FP,FN)
+######End of custom function#######
+
+#########Start of custom function###########
+def createGraphs(df):
+    #Removing rows with NaN
+    df = df.dropna()
+    #print(df)
+    
+    #Code for making 1 graph
+    #Making graph for TPR/FPR vs lambda
+    fig, ax = plt.subplots()
+    ax.plot(df['bin'],df['TPR']/df['FPR'],"b-") #Lambd values are basically the bin values
+    #ax.plot([0,1],[0,1], "k--")
+    ax.set(xlabel = "lambda",
+           ylabel = "TPR/FPR",
+           title = "TPR/FPR vs lambda graph");
+        
+    #Making graph for FNR/TNR vs lambda
+    #fig, ax = plt.subplots()
+    ax.plot(df['bin'],df['FNR']/df['TNR'],"g-") #Lambd values are basically the bin values
+    #ax.plot([0,1],[0,1], "k--")
+    ax.set(xlabel = "lambda",
+          ylabel = "FNR/TNR",
+          title = "FNR/TNR vs lambda graph");
+
+    """
+    #Code for making 2 graphs
+    #Making graph for TPR/FPR vs lambda
+    fig, ax = plt.subplots(1,2)
+    ax[0].plot(df['bin'],df['TPR']/df['FPR'],"b-") #Lambd values are basically the bin values
+    #ax.plot([0,1],[0,1], "k--")
+    ax[0].set(xlabel = "lambda",
+    ylabel = "TPR/FPR",
+    title = "TPR/FPR vs lambda graph");
+    ax[1].plot(df['bin'],df['FNR']/df['TNR'],"b-") #Lambd values are basically the bin values
+    #ax.plot([0,1],[0,1], "k--")
+    ax[1].set(xlabel = "lambda",
+    ylabel = "FNR/TNR",
+    title = "FNR/TNR vs lambda graph");
+    """
+######End of custom function#######
+
+
+
+
 for t in range(steps):
     loss, hitsArray, areaArray, lcLayerArray, rlLayerArray, ttimesArray = runStep(
         t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, waveArrayTensor, hd, ssmaps, countsInWatxTensor, distsInWatxTensor, w2ds, valueBinIndices, indexBatch=np.random.choice(N, batch, False), coefficientPenalties=coefficientPenalties, hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, verbose=True  # , withpdb=True
@@ -631,6 +745,26 @@ for bi, ni in enumerate(batchis):
                  linestyle=':')
         plt.scatter(ttimesArray.data.cpu().numpy()[ni,activeis],
                     np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds], color=plt.cm.viridis(mycolors[bi]))
+
+        x_actual = ttimesArray.data.cpu().numpy()[ni,activeis]
+        y_actual = np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds]
+        y_actual_cum = np.cumsum(y_actual)
+
+    #Plotting the cumulative hazard rate w.r.t. lambda
+    #plt.plot(x_predicted, np.cumsum(y_predicted))
+    #plt.xlabel('Lambda')
+    #plt.ylabel('Cumulative hazard rate')
+    #Plotting the total hazard rate of all the predicted points at the final time
+    #print('Plotting the total hazard rate of all the predicted points at the final time')
+    #plt.plot(x_predicted[-1], sum(y_actual), marker='o', markersize=5, color="red")
+
+    (df,TP,TN,FP,FN) = getConfusionMatrix(x_predicted, y_predicted, x_actual, y_actual,0.1)
+    results.append((df,TP,TN,FP,FN))
+
+    #Plotting the graphs
+    #print('Plotting the TPR/FPR and FNR/... graphs')
+    #createGraphs(df)
+
 plt.xlabel('Time')
 plt.ylabel('Hazard')
 plt.yscale('log')
@@ -794,7 +928,7 @@ if hawkesrd is not None:
 
 
 # Apply to hold out set: overwrite the test set with hold out
-holdoutObjects = jrd.load_dat4_dataset(dataSetDict=details, iterString='holdout', tvShape=np.array([None, Tmax, None]),eventBins=Ebins, lbubs=np.array([2010,np.nan]))
+holdoutObjects = jrd.load_dat4_dataset(dataSetDict=details, iterString='holdout', tvShape=np.array([None, Tmax, None]),eventBins=Ebins)
 _, _, testLbub, testParams, testPtsTimesValuesTensor, _ = holdoutObjects[0]
 Ntest = testParams[0]
 testWatx, testCountsInWatxTensor, testDistsInWatxTensor = f2m.derivedTensors(testLbub, target, testPtsTimesValuesTensor, targetSteps)
