@@ -1,10 +1,11 @@
-
 # coding: utf-8
 
 # In[1]:
 
 
 import importlib
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import jcw_pywavelets
 import jcw_f2mixture as f2m
@@ -31,7 +32,6 @@ importlib.reload(jh)
 if __name__ == '__main__':
 
     # Setup `argparse` module to assist in parsing the command line arguments.
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_directory", type=str, default='~/workspace/lt/py/data/targetHgbA1C/')
     parser.add_argument("--source_filename", type=str, default='a1ctarget4.csv')
