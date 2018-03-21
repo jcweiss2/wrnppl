@@ -1,3 +1,9 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
 import importlib
 import matplotlib.pyplot as plt
 import jcw_pywavelets
@@ -22,89 +28,89 @@ importlib.reload(jh)
 ############ RUN ############
 #############################
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     # Setup `argparse` module to assist in parsing the command line arguments.
+    # Setup `argparse` module to assist in parsing the command line arguments.
 
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("data_directory", type=str)
-#     parser.add_argument("source_filename", type=str)
-#     parser.add_argument("--N", type=int, default=100, help="Sample Size")
-#     parser.add_argument("--E", type=int, default=2, help="Event Dimension (time counts)")
-#     parser.add_argument("--D", type=int, default=2, help="# of reduce functions")
-#     parser.add_argument("--Ebins", type=int, default=32, help="")
-#     parser.add_argument("--scaleSteps", type=int, default=16, help="")
-#     parser.add_argument("--Tmax", type=int, default=50, help="Max. # of target times to use in tensor")
-#     parser.add_argument("--targetSteps", type=int, default=80, help="Target Steps")
-#     parser.add_argument("--batch", type=int, default=10, help="Batch")
-#     parser.add_argument("--steps", type=int, default=5, help="Initial Run Length (below is much longer)")
-#     parser.add_argument("--minHazard", type=int, default=5, help="")
-#     parser.add_argument("--maxGainOnHit", type=float, default=np.log(10), help="")
-#     parser.add_argument("--violationMultiplier", type=int, default=100, help="")
-#     parser.add_argument("--censorSize", type=int, default=1, help="overriden below if desired censorVector")
-#     parser.add_argument("--npermutations", type=int, default=4, help="# of permutations")
-#     parser.add_argument("--imageDir", type=str, default="./images/", help="Output Directory")
-#     parser.add_argument("--isCensorSizeDefault", type=bool, default=True, help="Output Directory")
-#     parser.add_argument("--pL1Value", type=float, default=1e-7, help="L1 regularization parameter")
-#     parser.add_argument("--pL2Value", type=float, default=0, help="L2 regularization parameter")
-#     parser.add_argument("--doingHawkes", type=bool, default=False, help="True if doing Hawkes")
-#     parser.add_argument("--optim", type=str, default="RMSprop", help="which optimizer to use -Adam/RMSprop?")
-#     parser.add_argument("--batchisUserInput", type=int, default=-999, help="type a list of user id's for the user you need the graph")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_directory", type=str, default='~/workspace/lt/py/data/targetHgbA1C/')
+    parser.add_argument("--source_filename", type=str, default='a1ctarget4.csv')
+    parser.add_argument("--N", type=int, default=100, help="Sample Size")
+    parser.add_argument("--E", type=int, default=2, help="Event Dimension (time counts)")
+    parser.add_argument("--D", type=int, default=2, help="# of reduce functions")
+    parser.add_argument("--Ebins", type=int, default=32, help="")
+    parser.add_argument("--scaleSteps", type=int, default=16, help="")
+    parser.add_argument("--Tmax", type=int, default=50, help="Max. # of target times to use in tensor")
+    parser.add_argument("--targetSteps", type=int, default=80, help="Target Steps")
+    parser.add_argument("--batch", type=int, default=10, help="Batch")
+    parser.add_argument("--steps", type=int, default=5, help="Initial Run Length (below is much longer)")
+    parser.add_argument("--minHazard", type=int, default=5, help="")
+    parser.add_argument("--maxGainOnHit", type=float, default=np.log(10), help="")
+    parser.add_argument("--violationMultiplier", type=int, default=100, help="")
+    parser.add_argument("--censorSize", type=int, default=1, help="overriden below if desired censorVector")
+    parser.add_argument("--npermutations", type=int, default=4, help="# of permutations")
+    parser.add_argument("--imageDir", type=str, default="./images/", help="Output Directory")
+    parser.add_argument("--isCensorSizeDefault", type=bool, default=True, help="Output Directory")
+    parser.add_argument("--pL1Value", type=float, default=1e-7, help="L1 regularization parameter")
+    parser.add_argument("--pL2Value", type=float, default=0, help="L2 regularization parameter")
+    parser.add_argument("--doingHawkes", type=bool, default=False, help="True if doing Hawkes")
+    parser.add_argument("--optim", type=str, default="RMSprop", help="which optimizer to use -Adam/RMSprop?")
+    parser.add_argument("--batchisUserInput", type=int, default=-999, help="type a list of user id's for the user you need the graph")
 
-#     args = parser.parse_args()
+    args = parser.parse_args()
 
 
 
-#     # Allocate the command line parameters to global variables of this script.
+    # Allocate the command line parameters to global variables of this script.
 
-#     data_directory = args.data_directory
-#     source_filename_prefix = ''.join(args.source_filename.split(".")[:-1])
-#     source_filename_suffix = args.source_filename.split(".")[-1]
+    data_directory = args.data_directory
+    source_filename_prefix = '.'.join(args.source_filename.split(".")[:-1])
+    source_filename_suffix = '.' + args.source_filename.split(".")[-1]
 
-#     N = args.N
-#     E = args.E
-#     D = args.D
-#     Ebins = args.Ebins
-#     scaleSteps = args.scaleSteps
-#     Tmax = args.Tmax
-#     targetSteps = args.targetSteps
-#     steps = args.steps
-#     batch = args.batch
-#     minHazard = args.minHazard
-#     maxGainOnHit = args.maxGainOnHit
-#     violationMultiplier = args.violationMultiplier
-#     censorSize = args.censorSize
-#     npermutations = args.npermutations
-#     imageDir = args.imageDir
-#     pL1Value=args.pL1Value
-#     pL2Value=args.pL2Value
-#     doingHawkes=args.doingHawkes
-#     optim=args.optim
-#     isCensorSizeDefault=args.isCensorSizeDefault
-#     batchisUserInput=args.batchisUserInput
+    N = args.N
+    E = args.E
+    D = args.D
+    Ebins = args.Ebins
+    scaleSteps = args.scaleSteps
+    Tmax = args.Tmax
+    targetSteps = args.targetSteps
+    steps = args.steps
+    batch = args.batch
+    minHazard = args.minHazard
+    maxGainOnHit = args.maxGainOnHit
+    violationMultiplier = args.violationMultiplier
+    censorSize = args.censorSize
+    npermutations = args.npermutations
+    imageDir = args.imageDir
+    pL1Value=args.pL1Value
+    pL2Value=args.pL2Value
+    doingHawkes=args.doingHawkes
+    optim=args.optim
+    isCensorSizeDefault=args.isCensorSizeDefault
+    batchisUserInput=args.batchisUserInput
 
 
 np.random.seed(np.int(1.5829e5))  # 1.5829e5
 torch.manual_seed(np.int(1.5829e5+252))  # 252
 
-N = 100  # 40 # samples
-E, D = 2, 2  # eventDimension (time counts), reduceFunctions
-Ebins = 32
-scaleSteps = 16
-Tmax = 20  # max number of target times to use in tensor
-targetSteps = 80  # 200
-batch = 10
-steps = 5
-minHazard = 1e-5
-maxGainOnHit = np.log(10)
-violationMultiplier = 100
-censorSize = 1  # default, overridden below if desired censorVector
-pL1Value=1e-7
-pL2Value=0
-doingHawkes=False
-optim="RMSprop"
-isCensorSizeDefault=True
-batchisUserInput=-999
+# N = 100  # 40 # samples
+# E, D = 2, 2  # eventDimension (time counts), reduceFunctions
+# Ebins = 32
+# scaleSteps = 16
+# Tmax = 20  # max number of target times to use in tensor
+# targetSteps = 80  # 200
+# batch = 10
+# steps = 5
+# minHazard = 1e-5
+# maxGainOnHit = np.log(10)
+# violationMultiplier = 100
+# censorSize = 1  # default, overridden below if desired censorVector
+# pL1Value=1e-7
+# pL2Value=0
+# doingHawkes=False
+# optim="RMSprop"
+# isCensorSizeDefault=True
+# batchisUserInput=-999
 
 if(isCensorSizeDefault):
     censorSize=censorSize
@@ -114,9 +120,9 @@ else:
         censorSize = censorVector.size()[0]
     censorFixed = False
 
-npermutations = 4
+# npermutations = 4
 
-imageDir = 'images/'  # for output
+# imageDir = 'images/'  # for output
 timeString = str(dt.datetime.now())
 
 tensorType = torch.DoubleTensor
@@ -141,9 +147,9 @@ for i in range(len(hd)):
 # # target, events, lbub, ptsTimesValuesTensor, waveArrayTensor = f2m.loadPricklyData(trainDir, (N, Tmax, E))
 # # # _, _, testLbub, testPtsTimesValuesTensor, testWaveArrayTensor = f2m.loadPricklyData(testDir, (N, Tmax, E))
 
-details = {'dataDir': '~/workspace/lt/py/data/targetHgbA1C/',
-           'prefix': 'a1ctarget4',
-           'suffix':'.csv',
+details = {'dataDir': data_directory,
+           'prefix': source_filename_prefix,
+           'suffix':source_filename_suffix,
            'folds': ['','test'],
            'target': 'HgbA1C',
            'holdout': ['holdout']}
@@ -187,11 +193,9 @@ if(doingHawkes):
     hawkesrd, hawkespd = jh.makeHawkesReconstructionDict(waveArrayTensor)
     E, D =  1, 1
 
-
 ### build the derivedTensors
 wsizes = f2m.getWaveletSizes(events, waveArrayTensor)
-stepsValues, stepsTimes, w2ds, valueBinIndices, dim2d = \
-    f2m.getImageTensors(target, events, wsizes, ptsTimesValuesTensor, scaleSteps)
+stepsValues, stepsTimes, w2ds, valueBinIndices, dim2d =     f2m.getImageTensors(target, events, wsizes, ptsTimesValuesTensor, scaleSteps)
 
 watx, countsInWatxTensor, distsInWatxTensor = f2m.derivedTensors(lbub, target, ptsTimesValuesTensor, targetSteps)
 ssmaps = f2m.getSSMaps(ptsTimesValuesTensor, waveArrayTensor, watx)
@@ -343,8 +347,7 @@ class NormPermutePool(nn.Module):
         # pdb.set_trace()
         # out = self.bn(x.contiguous().view(-1, self.rxd, self.E)).view(x.size()[0], x.size()[1], self.rxd, self.E)  # _ x (C) x rxd x E
         out = x.transpose(rdim,edim).matmul(self.permuteRxdMatrix)  # _ x (C) x E x rxd
-        out = out.transpose(rdim,edim).matmul( \
-            (self.permuteETensor*self.signTensor).view(self.E,-1))  # _ x (C) x rxd x [E x permutations]
+        out = out.transpose(rdim,edim).matmul(             (self.permuteETensor*self.signTensor).view(self.E,-1))  # _ x (C) x rxd x [E x permutations]
         out = out.view(dims[0],dims[1],dims[2],self.E,-1)  # _ x (C) x rxd x E x permutations
         outi = []
         for p, u, o in zip(self.pools, self.unpools, out.split(1,dim=4)):
@@ -438,9 +441,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                 images[eventi] = Variable(torch.zeros(int(dim2d[eventi,0]),int(dim2d[eventi,1])).double().type(tensorType),
                                           requires_grad=False)  # break the chain; no wavelet here
             else:
-                images[eventi] = \
-                    w2ds[eventi].matmul(hd[np.log2(dim2d[eventi,1])-1]).t().\
-                    matmul(hd[np.log2(dim2d[eventi,0])-1]).t()  # events x valueBins x timeBins
+                images[eventi] =                     w2ds[eventi].matmul(hd[np.log2(dim2d[eventi,1])-1]).t().                    matmul(hd[np.log2(dim2d[eventi,0])-1]).t()  # events x valueBins x timeBins
     else:
         '''
         overrideReconstructionDict is a dict with keys events and values Variables with requires_grad=True upstream.
@@ -482,8 +483,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                 if skey is not None:
                     recon = reconstruction[eventi]
                     if hadamardCensor is not None:
-                        reconCensored = recon.expand_as(hadamardCensor[event]) * \
-                            hadamardCensor[event]  # C x len(w)
+                        reconCensored = recon.expand_as(hadamardCensor[event]) *                             hadamardCensor[event]  # C x len(w)
                         recon = reconCensored.unsqueeze(0)  # 1 x C x len(w)
 
                     # skey len(w) x ts; recon.matmul(skey) is C x ts  # note: matmul() broadcasts, mm() does not
@@ -498,8 +498,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
                         else:
                             imageRecon = images[eventi][valueBinIndices[ni][eventi][ti],:].unsqueeze(1).t()
                             if hadamardCensor is not None:
-                                imageCensored = imageRecon.expand_as(hadamardCensor[event]) * \
-                                    hadamardCensor[event]  # C x len(w)
+                                imageCensored = imageRecon.expand_as(hadamardCensor[event]) *                                     hadamardCensor[event]  # C x len(w)
                                 imageRecon = imageCensored.unsqueeze(0)  # 1 x C x len(w)
                             # imageInterpolated[bi][eventi][j] = skey.t().matmul(  # TODO make it able to hadamard and use imageCensored
                             #     imageRecon.t()).t()  # which row!?
@@ -546,8 +545,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
         clcLayerTensor = parallelLinearLayer(eventsLayer.permute(3,2,1,0)).transpose(0,1)  # (C) x len(w) x 1
         crlLayerTensor = reluLayer(clcLayerTensor - minHazard) + minHazard  # (C) x len(w) x 1
         
-        violationArray[bi,:] = torch.clamp(clcLayerTensor,max=0).abs().squeeze(2).matmul(distsInWatxTensor[ni]) * \
-            violationMultiplier 
+        violationArray[bi,:] = torch.clamp(clcLayerTensor,max=0).abs().squeeze(2).matmul(distsInWatxTensor[ni]) *             violationMultiplier 
         
         lcLayerArray[bi,:,:] = clcLayerTensor.squeeze(2)  # (C) x len(w)
         rlLayerArray[bi,:,:] = crlLayerTensor.squeeze(2)  # (C) x len(w)
@@ -581,8 +579,7 @@ def runStep(t, N, Tmax, targetSteps, optimizer, events, ptsTimesValuesTensor, wa
         l1Wvt = torch.cat(parsWvt)
         l1WvtImage = torch.cat([p.view(-1) for p in parsWvtImage],0)
     
-    penalty = pL1 * l1Linear.abs().sum() + pL2 * l1Linear.pow(2).sum() + \
-              pL1Wvt * l1Wvt.abs().sum() + pL1WvtImage * l1WvtImage.abs().sum()
+    penalty = pL1 * l1Linear.abs().sum() + pL2 * l1Linear.pow(2).sum() +               pL1Wvt * l1Wvt.abs().sum() + pL1WvtImage * l1WvtImage.abs().sum()
     loss = (hitsArray - areaArray - violationArray).sum().neg_()/B/C + penalty
     
     if optimizer is not None:
@@ -734,8 +731,7 @@ if tensorType == torch.cuda.DoubleTensor:
     for i, ci in enumerate(testCountsInWatxTensor):
         testCountsInWatxTensor[i] = testCountsInWatxTensor[i].cuda()
         testDistsInWatxTensor[i] = testDistsInWatxTensor[i].cuda()
-_, _, _, testValueBinIndices, _ = \
-    f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
+_, _, _, testValueBinIndices, _ =     f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
 testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = runStep(
     t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor, waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor, w2ds, testValueBinIndices, coefficientPenalties=coefficientPenalties, hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, verbose=True)  # use waveArrayTensor no testWaveArrayTensor because waveArrayTensor holds train set modified wavelet reconstruction parameters
 
@@ -747,10 +743,8 @@ baseRate = (~np.isnan(ttimesArray.data.numpy())).sum() / (lbub[:,1]-lbub[:,0]).s
 testBaseRate = (~np.isnan(testTtimesArray.data.numpy())).sum() / (testLbub[:,1]-testLbub[:,0]).sum()
 print('Average rate: ' + str(baseRate))
 print('Average rate (tune): ' + str(testBaseRate))
-print('Average NLL guessing: ' + \
-      str(baseRate*(lbub[:,1]-lbub[:,0]).sum()/lbub.shape[0] - np.log(baseRate)*baseRate*(lbub[:,1]-lbub[:,0]).sum()/lbub.shape[0]))
-print('Average NLL guessing (test): ' + \
-      str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
+print('Average NLL guessing: ' +       str(baseRate*(lbub[:,1]-lbub[:,0]).sum()/lbub.shape[0] - np.log(baseRate)*baseRate*(lbub[:,1]-lbub[:,0]).sum()/lbub.shape[0]))
+print('Average NLL guessing (test): ' +       str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
 
 
 # Plot wavelet reconstruction
@@ -795,7 +789,7 @@ if w2ds[ei] is not None:
     plt.xlabel('Relative time')
     plt.colorbar()
     # plt.show()
-    plt.savefig(imageDir + targetCleaned + timeString + 'wvtImage.svg', format='svg'); plt.clf()
+    plt.savefig(imageDir + targetCleaned + timeString + 'wvtImage1.svg', format='svg'); plt.clf()
  
 timeString = str(dt.datetime.now())
 batch = 30
@@ -816,7 +810,7 @@ results = [] #Contains the final (TP,TN,FP,FN) result tuples
 
 #Sample custom input
 #batchisUserInput = [3, 4, 5, 10, 16]
-#batchisUserInput = -999
+batchisUserInput = -999
 if batchisUserInput != -999:
     batchis = batchisUserInput #Get overwritten with the custom input
     print("Overwritting batchis with custom user input:")
@@ -836,9 +830,9 @@ if(batchisUserInput!=-999):
             inds = np.digitize(ttimesArray.data.cpu().numpy()[ni,:][activeis],
                                watx[ni][:-1]) - 1
                 
-                               x_actual = ttimesArray.data.cpu().numpy()[ni,activeis]
-                               y_actual = np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds]
-                               y_actual_cum = np.cumsum(y_actual)
+        x_actual = ttimesArray.data.cpu().numpy()[ni,activeis]
+        y_actual = np.zeros(len(activeis))+rlLayerArray.data.cpu().numpy()[bi,0,inds]
+        y_actual_cum = np.cumsum(y_actual)
         
         #Plotting the cumulative hazard rate w.r.t. lambda
         
@@ -856,9 +850,10 @@ if(batchisUserInput!=-999):
         #Plotting the graphs
         #print('Plotting the TPR/FPR and FNR/... graphs')
         plt.figure(bi+len(batchisUserInput))
-    createGraphs(df)
+        createGraphs(df)
 
-plt.show()
+    plt.show()
+    plt.savefig(imageDir + targetCleaned + timeString + 'testHazards_Shikha' + str(c) + '.svg', format="svg"); plt.clf()
 
 for bi, ni in enumerate(batchis):
     # plt.plot(np.linspace(0,20,num=targetSteps),testRlLayerArray.data.cpu().numpy()[i,:].squeeze())
@@ -882,8 +877,7 @@ plt.ylabel('Hazard')
 plt.yscale('log')
 # plt.show()
 plt.savefig(imageDir + targetCleaned + timeString + 'trainHazards.svg', format="svg"); plt.clf()
-testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = \
-    runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
+testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray =     runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
             waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor,
             w2ds, testValueBinIndices,
             indexBatch=batchis,
@@ -961,7 +955,7 @@ if not parallelLinearLayer.overridden:
 # optimizer = torch.optim.RMSprop(pars, weight_decay=1e-3)
 # optimizer = torch.optim.Adam(pars, weight_decay=1e-3)  # 1e-4)
 optimizer = torch.optim.Adam(pars, weight_decay=0)  # 1e-4)
-moresteps = 10000
+moresteps = 10
 batch = 20
 testBatch = min(1000,Ntest)
 updateEach = 1  # epochs
@@ -1000,8 +994,7 @@ for t in range(moresteps):
         #     hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, 
         #     verbose=True)
         print('Test performance: ')
-        testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = \
-            runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
+        testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray =             runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
                     waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor,
                     w2ds, testValueBinIndices,
                     indexBatch=np.random.choice(Ntest, testBatch, False),
@@ -1044,12 +1037,10 @@ holdoutObjects = jrd.load_dat4_dataset(dataSetDict=details, iterString='holdout'
 _, _, testLbub, testParams, testPtsTimesValuesTensor, _ = holdoutObjects[0]
 Ntest = testParams[0]
 testWatx, testCountsInWatxTensor, testDistsInWatxTensor = f2m.derivedTensors(testLbub, target, testPtsTimesValuesTensor, targetSteps)
-_, _, _, testValueBinIndices, _ = \
-    f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
+_, _, _, testValueBinIndices, _ =     f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
 testSsmaps = f2m.getSSMaps(testPtsTimesValuesTensor, waveArrayTensor, testWatx)
 print('Holdout performance: ')
-testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = \
-    runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
+testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray =     runStep(t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor,
             waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor,
             w2ds, testValueBinIndices,
             # indexBatch=np.random.choice(Ntest, testBatch, False),
@@ -1072,13 +1063,11 @@ print('[2.5%,97.5%]: ', blb, bub)
 
 testBaseRate = (~np.isnan(testTtimesArray.data.numpy())).sum() / (testLbub[:,1]-testLbub[:,0]).sum()
 print('Average rate (holdout): ' + str(testBaseRate))
-print('Average NLL guessing (holdout): ' + \
-      str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
+print('Average NLL guessing (holdout): ' +       str(testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0] - np.log(testBaseRate)*testBaseRate*(testLbub[:,1]-testLbub[:,0]).sum()/testLbub.shape[0]))
 
 
 # See coefficents as a function of censorStep
-_, _, _, testValueBinIndices, _ = \
-    f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
+_, _, _, testValueBinIndices, _ =     f2m.getImageTensors(target, events, wsizes, testPtsTimesValuesTensor, scaleSteps)
 testLoss, testHitsArray, testAreaArray, testLcLayerArray, testRlLayerArray, testTtimesArray = runStep(
     t, Ntest, Tmax, targetSteps, None, events, testPtsTimesValuesTensor, waveArrayTensor, hd, testSsmaps, testCountsInWatxTensor, testDistsInWatxTensor, w2ds, testValueBinIndices, coefficientPenalties=coefficientPenalties, hadamardCensor=hadamardCensor, overrideReconstructionDict=hawkesrd, overrideParametersDict=hawkespd, verbose=True)  # use waveArrayTensor no testWaveArrayTensor because waveArrayTensor holds train set modified wavelet reconstruction parameters
 print('Tune performance as a function of censor step')
@@ -1091,17 +1080,9 @@ testLcLayerArray[np.argsort(batchis),:].squeeze(1)
 
 ###  Loading from a saved file
 # 1. load from save file
-vals = f2m.loadJcwModel('replace')
-t, N, Tmax, Ebins, targetSteps, optimizer, events, ptsTimesValuesTensor, waveArrayTensor, hd, ssmaps, countsInWatxTensor, distsInWatxTensor, w2ds, valueBinIndices, parallelLinearLayer, bestPars, bestTestLoss, testLosses = vals
+# vals = f2m.loadJcwModel('replace')
+# t, N, Tmax, Ebins, targetSteps, optimizer, events, ptsTimesValuesTensor, waveArrayTensor, hd, ssmaps, countsInWatxTensor, distsInWatxTensor, w2ds, valueBinIndices, parallelLinearLayer, bestPars, bestTestLoss, testLosses = vals
 # 2. ensure the wsizes gets overwrote to match this data
 
 # Test set {log likelihood, FP per TP} as a function of forecast window
 
-def parseArguments(parser):
-    argparse.ArgumentParser(description='Parses CL for running parameters for SW4MPPs')
-    ''' ...  '''
-    
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    args = parseArguments(parser)
-    ''' ... '''
